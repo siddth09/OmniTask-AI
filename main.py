@@ -90,8 +90,6 @@ def serve_ui():
     return html_content
 
 # 2. THIS ROUTE HANDLES THE AI BRAINPOWER
-# Replace the bottom half of your main.py with this:
-
 @app.post("/execute-task")
 def execute_multi_agent_task(request: UserRequest):
     # 1. THE SUPERVISOR PHASE
