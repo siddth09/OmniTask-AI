@@ -23,6 +23,9 @@ searches.
 how sub-agents communicate with external tools (Calendar, Tasks), ensuring secure and modular
 tool execution.
 
+<img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/63e6d267-b7ce-4f6a-875a-a36ffe3867a2" />
+
+
 Technologies to be used in the solution
 ====
 **• Google Cloud Run:** Serverless container hosting for the API and UI.
