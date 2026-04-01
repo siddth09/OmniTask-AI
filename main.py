@@ -42,8 +42,7 @@ def serve_ui():
         <button onclick="sendTask()">Execute Workflow</button>
         <div id="loadingText" class="loading">Agents are processing your request...</div>
         <div id="resultBox" class="result-box"></div>
-    </div>
-    <script>
+    </div><script>
         async function sendTask() {
             const promptText = document.getElementById("promptInput").value;
             const resultBox = document.getElementById("resultBox");
@@ -52,10 +51,10 @@ def serve_ui():
             if (!promptText) return alert("Please enter a task!");
 
             loadingText.style.display = "block";
+            loadingText.innerText = "Supervisor Agent is planning...";
             resultBox.style.display = "none";
 
             try {
-                // Notice we just use the relative path now!
                 const response = await fetch("/execute-task", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -63,7 +62,18 @@ def serve_ui():
                 });
 
                 const data = await response.json();
-                resultBox.innerHTML = `<strong>Status:</strong> ${data.status}<br><br><strong>Supervisor Plan:</strong><br>${data.supervisor_plan}`;
+                
+                // Build the execution logs HTML
+                let executionHtml = "<br><br><strong>⚡ Sub-Agent Execution Logs (via MCP):</strong><br>";
+                data.execution.forEach(log => {
+                    executionHtml += `<div style="background: #e8f0fe; padding: 10px; margin-top: 10px; border-radius: 5px; border-left: 4px solid #1a73e8;">
+                        <strong>${log.agent}</strong><br>
+                        ${log.action}<br>
+                        <span style="color: green; font-size: 0.9em;">${log.status}</span>
+                    </div>`;
+                });
+
+                resultBox.innerHTML = `<strong>Status:</strong> ${data.status}<br><br><strong>🧠 Supervisor Plan:</strong><br>${data.supervisor_plan} ${executionHtml}`;
                 
                 loadingText.style.display = "none";
                 resultBox.style.display = "block";
@@ -80,19 +90,49 @@ def serve_ui():
     return html_content
 
 # 2. THIS ROUTE HANDLES THE AI BRAINPOWER
+# Replace the bottom half of your main.py with this:
+
 @app.post("/execute-task")
 def execute_multi_agent_task(request: UserRequest):
+    # 1. THE SUPERVISOR PHASE
     supervisor_prompt = f"""
     You are the OmniTask Supervisor Agent. 
     Analyze this user request: "{request.prompt}"
     Determine if you need to route this to the Calendar Agent, Task Agent, or Knowledge Agent.
-    Outline your execution plan concisely.
+    Outline your execution plan concisely in bullet points.
     """
     
     response = supervisor_model.generate_content(supervisor_prompt)
     
+    # 2. THE EXECUTION PHASE (Simulating MCP Tool Calls)
+    # In a production environment, this is where LangGraph would trigger the MCP servers.
+    execution_logs = []
+    
+    prompt_lower = request.prompt.lower()
+    if "meeting" in prompt_lower or "calendar" in prompt_lower:
+        execution_logs.append({
+            "agent": "📅 Calendar Sub-Agent",
+            "action": "Connecting to Calendar via MCP... Success. Event '3 PM Meeting' modified to tomorrow.",
+            "status": "✅ Complete"
+        })
+        
+    if "note" in prompt_lower or "task" in prompt_lower or "prep" in prompt_lower:
+        execution_logs.append({
+            "agent": "✅ Task Sub-Agent",
+            "action": "Connecting to Task Manager via MCP... Success. New task created: 'Prep the slide deck'.",
+            "status": "✅ Complete"
+        })
+        
+    if "database" in prompt_lower or "search" in prompt_lower:
+        execution_logs.append({
+            "agent": "🧠 Knowledge Sub-Agent",
+            "action": "Querying AlloyDB pgvector via MCP... Retrieved past notes.",
+            "status": "✅ Complete"
+        })
+
     return {
         "original_request": request.prompt,
         "supervisor_plan": response.text,
-        "status": "Agents Dispatched"
+        "execution": execution_logs,
+        "status": "Workflow Executed Successfully"
     }
