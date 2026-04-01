@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+google-cloud-aiplatform
+langchain
+langchain-google-vertexai
+pg8000
